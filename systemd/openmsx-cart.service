@@ -1,0 +1,28 @@
+# MSX IQ-2000 재현기 — 부팅 시 자동 실행
+#
+# 설치:
+#   sudo cp systemd/openmsx-cart.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now openmsx-cart
+# 로그:
+#   journalctl -u openmsx-cart -f
+#
+# ⚠️ User= 와 ExecStart= 경로를 본인 환경에 맞게 고칠 것.
+# ⚠️ 데스크톱 없이 콘솔로 띄우려면 SDL_VIDEODRIVER 조정이 필요할 수 있다.
+#    kmsdrm 으로 안 잡히면 로그를 보고 x11 / wayland 등으로 바꿔 볼 것.
+
+[Unit]
+Description=MSX IQ-2000 재현기 (openMSX + USB 롬팩)
+After=multi-user.target
+
+[Service]
+User=pi
+Environment=SDL_VIDEODRIVER=kmsdrm
+Environment=MSX_MACHINE=Daewoo_CPC-300
+Environment=MSX_POLL=2
+ExecStart=/home/pi/iq2000-reborn/scripts/cart-watch.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

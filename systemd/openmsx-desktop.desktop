@@ -1,0 +1,9 @@
+# 데스크톱 환경에서 자동 실행 (간단한 쪽)
+#   cp systemd/openmsx-desktop.desktop ~/.config/autostart/
+[Desktop Entry]
+Type=Application
+Name=MSX IQ-2000
+Comment=openMSX Daewoo CPC-300 + USB 롬팩 감시
+Exec=/home/pi/iq2000-reborn/scripts/cart-watch.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

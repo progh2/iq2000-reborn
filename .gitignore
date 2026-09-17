@@ -1,0 +1,14 @@
+# ─── ROM·BIOS는 저작물이다. 절대 커밋하지 않는다 ───
+*.rom
+*.mx1
+*.mx2
+*.dsk
+*.cas
+*.ips
+systemroms/
+roms/
+
+# 작업 부산물
+*.log
+.DS_Store
+__pycache__/
