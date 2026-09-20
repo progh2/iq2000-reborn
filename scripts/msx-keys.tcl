@@ -22,4 +22,9 @@ bind F9,release   "keymatrixup   6 0x04"
 bind F8           "keymatrixdown 6 0x10"
 bind F8,release   "keymatrixup   6 0x10"
 
-puts "MSX 키 바인딩: F12=SELECT  F11=STOP  F9=GRAPH  F8=CODE"
+# ── F7 = 누르는 동안 빨리감기 ──
+# 아이큐 교실의 한 글자씩 찍는 연출 등을 스킵할 때. 떼면 정상 속도로 복귀.
+bind F7           "set throttle off"
+bind F7,release   "set throttle on"
+
+puts "MSX 키 바인딩: F12=SELECT  F11=STOP  F9=GRAPH  F8=CODE  F7=빨리감기(홀드)"

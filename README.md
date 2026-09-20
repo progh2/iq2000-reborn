@@ -95,7 +95,7 @@ MSX에는 **PC 키보드에 없는 키**가 있고, 그게 실제로 필요하�
 ```bash
 mkdir -p ~/.openMSX/share/scripts
 cp scripts/msx-keys.tcl ~/.openMSX/share/scripts/
-#  → F12=SELECT  F11=STOP  F9=GRAPH  F8=CODE
+#  → F12=SELECT  F11=STOP  F9=GRAPH  F8=CODE  F7=빨리감기(홀드)
 ```
 
 `~/.openMSX/share/scripts/` 안의 `.tcl` 은 **openMSX 시작 시 자동 실행**된다.
