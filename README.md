@@ -1,242 +1,318 @@
 # iq2000-reborn
 
-**대우 IQ-2000 (CPC-300) — 국산 MSX2를 라즈베리파이로 재현하는 프로젝트.**
+**대우 IQ-2000 (CPC-300) — 국산 MSX2를 라즈베리파이로 재현한 전용기.**
 
-openMSX로 IQ-2000을 부팅하고, 저용량 USB 메모리를 「롬팩」처럼 갈아 끼우는 전용기를 만든다.
-목표는 **한글이 표시되는 국산 MSX2 환경의 재현** — 일본 MSX2로는 대체되지 않는 부분이다.
+전원을 꽂으면 「아이큐 교실」이 뜨고, USB 메모리를 롬팩처럼 꽂으면 게임이 뜨고, 뽑으면 아이큐 교실로 돌아온다.
+목표였던 **한글이 표시되는 국산 MSX2 환경의 재현** — 일본 MSX2로는 대체되지 않는 그 부분 — 이 완성됐다.
 
-> ✅ **2026-09-18**: Windows에서 openMSX 21.0 / `Daewoo CPC-300` 부팅 확인.
-> **「MSX-TUTOR / 아이큐 교실」** 한글 표시 정상 — 한글 ROM 인식 검증 완료.
+> ✅ **2026-09-20 완성.** Raspberry Pi 3 B+ / 공식 7" 터치스크린 / Raspberry Pi OS(Trixie) 32-bit
+> 부팅 자동 실행 · USB 롬팩 · 한글(SCREEN 9) · 마성전설 치트까지 전부 실기동작 검증.
 
 ---
 
-## 왜 CPC-300인가
+## 차례
 
-대우 MSX 계열 중 **한글 지원 + 키보드 일체형 + FDD 없음** 조건을 동시에 만족하는 기종이 CPC-300이다.
+1. [이 물건은 무엇인가](#1-이-물건은-무엇인가)
+2. [준비물](#2-준비물)
+3. [OS 설치](#3-os-설치)
+4. [openMSX 설치와 ROM 배치](#4-openmsx-설치와-rom-배치)
+5. [화면·키보드·치트 설정](#5-화면키보드치트-설정)
+6. [USB 롬팩 만들기와 시험](#6-usb-롬팩-만들기와-시험)
+7. [전용기 전환 (부팅 자동 실행)](#7-전용기-전환-부팅-자동-실행)
+8. [일상 운용 매뉴얼](#8-일상-운용-매뉴얼)
+9. [트러블슈팅](#9-트러블슈팅)
+10. [부록 — 선택 확장](#10-부록--선택-확장)
+11. [프로젝트 여정 (로드맵의 최후)](#11-프로젝트-여정)
+
+---
+
+## 1. 이 물건은 무엇인가
+
+대우 MSX 계열 중 **한글 지원 + 키보드 일체형 + FDD 없음 + 조이스틱 포트**를 동시에 만족하는 기종이 **IQ-2000(CPC-300)** 이다 (1986~87, MSX2, RAM/VRAM 128KB, 한글 2.0 조합형 고딕체 내장).
 
 | 조건 | 이유 |
 |---|---|
-| **한글 ROM 내장** | 일본 MSX에는 한글 ROM이 없다. 국산 기종이어야 한다 → **IQ-1000(CPC-88)은 한글 미지원**이라 제외 |
-| **키보드 일체형** | 분리형인 **X-II(CPC-400)·CPC-400S** 제외 |
+| **한글 ROM 내장** | 일본 MSX에는 한글 ROM이 없다 → IQ-1000(CPC-88)은 한글 미지원이라 제외 |
+| **키보드 일체형** | 분리형인 X-II(CPC-400)·CPC-400S 제외 |
 | **FDD 없음** | 〃 (CPC-400 계열은 FDD 내장) |
-| **조이스틱 포트 있음** | 학교 납품 교육용 **CPC-300E는 조이스틱 포트가 없다** |
+| **조이스틱 포트** | 학교 납품용 CPC-300E는 조이스틱 포트가 없다 |
 
-👉 **대우 IQ-2000 (CPC-300)** — MSX2, RAM/VRAM 128KB, **한글 2.0 조합형 고딕체** 내장, 1986~87.
-전원을 켜면 BASIC이 아니라 내장 교육 프로그램 **「아이큐 교실」(MSX-TUTOR)** 로 먼저 진입한다.
+전원을 켜면 BASIC이 아니라 내장 교육 프로그램 **「아이큐 교실」(MSX-TUTOR)** 로 먼저 들어간다.
+**카트리지를 꽂고 켜도 마찬가지다** — 아이큐 교실이 먼저 뜨고, `SELECT` 키를 누르면 게임/BASIC으로 넘어간다.
+이 재현기는 그 동작까지 그대로다.
 
-계열 전체 비교표 → [`docs/hardware.md`](docs/hardware.md)
+기종 판별 근거·대우/재믹스 계열 비교 → [`docs/hardware.md`](docs/hardware.md)
 
-## 어떤 OS로 시작하나
+## 2. 준비물
 
-**Raspberry Pi OS (64-bit) / Bookworm.** Debian 기반이라 openMSX가 apt 저장소에 있다.
-
-| | Desktop 버전 | Lite 버전 |
-|---|---|---|
-| 난이도 | ⭐ **여기서 시작** | ⭐⭐⭐ |
-| 자동 실행 | `~/.config/autostart/` | systemd |
-| `SDL_VIDEODRIVER` | `wayland` 또는 `x11` | **`kmsdrm`** |
-| 성격 | 검증하기 쉽다 | **전용기답다** |
-
-👉 **Desktop으로 먼저 동작을 확인하고 Lite로 옮긴다.** 처음부터 Lite로 가면 화면이 안 뜰 때 원인을 못 가린다.
-⚠️ **Bookworm은 Wayland가 기본이다.** 이 저장소의 systemd 유닛은 `kmsdrm`(=Lite 기준)이므로 Desktop에서 쓰려면 값을 바꿔야 한다.
-
-**Pi 4면 MSX2에 충분하고, Pi 3도 설정을 깎으면 된다.** 설치·빌드·경로·Pi 3 튜닝 상세 → [`docs/raspberry-pi.md`](docs/raspberry-pi.md)
-
-## 빠른 시작
-
-```bash
-git clone https://github.com/progh2/iq2000-reborn.git ~/iq2000-reborn
-cd ~/iq2000-reborn
-./scripts/install.sh          # openMSX 설치 + systemroms 디렉터리 생성
-# 아래 3개 ROM을 ~/.openMSX/share/systemroms/ 에 넣는다
-./scripts/msx-run.sh          # 카트리지 없이 부팅 → 「아이큐 교실」
-./scripts/msx-run.sh /path/to/game.rom   # 팩 꽂고 부팅
-```
+| 품목 | 비고 |
+|---|---|
+| **Raspberry Pi 3 B+** 이상 | Pi 3는 튜닝하면 충분하다 ([docs/raspberry-pi.md](docs/raspberry-pi.md) 성능 절). Pi 4 이상이면 여유 |
+| **화면** | 공식 7" 터치스크린(전용 케이스 포함)이면 본체·화면·케이스가 한 번에 해결된다. HDMI 모니터도 무방 |
+| microSD (8GB+) · **5V 2.5A+ 전원** | 전원이 부실하면 저전압 스로틀로 고생한다 (→ 트러블슈팅) |
+| USB 키보드 | MSX 키보드 역할 |
+| **저용량 USB 메모리 여러 개** | 롬팩용. 128MB~1GB 구형이 물건의 무게감까지 그 시절 같다 |
+| 소리 (선택) | 3.5mm 잭에 이어폰이나 앰프 내장 스피커. HDMI 모니터에 스피커가 있으면 그걸로 |
+| **ROM 3개** | 아래 참고. **본인 실기에서 직접 덤프하는 것이 정당한 경로이며, 이 저장소는 ROM을 포함하지 않는다** |
 
 ### 필요한 ROM 3개
 
 | 파일 | 역할 | 필수 |
 |---|---|---|
-| `cpc-300_basic-bios2.rom` | 메인 ROM — BIOS + MSX-BASIC (부팅·파란 BASIC 화면) | ✅ |
-| `cpc-300_msx2sub.rom` | MSX2 SUB-ROM — 확장 기능·화면 모드 | ✅ |
-| `cpc-300_hangul.rom` | 🇰🇷 **한글 ROM** — `SCREEN 9` / 「아이큐 교실」의 실체 | ✅ **핵심** |
-| ~~`cpc-300e_msx2sub.rom`~~ | 교육용 CPC-300E 전용 | ❌ 불필요 |
+| `cpc-300_basic-bios2.rom` | 메인 ROM — BIOS + MSX-BASIC | ✅ |
+| `cpc-300_msx2sub.rom` | MSX2 SUB-ROM | ✅ |
+| `cpc-300_hangul.rom` | 🇰🇷 **한글 ROM** — `SCREEN 9` / 아이큐 교실의 실체 | ✅ **핵심** |
 
-- **파일명은 무관하다.** openMSX는 SHA1 해시로 판별한다. 해시가 다른 판본이면 인식하지 못하고, 실행 시 어느 ROM이 없는지 알려준다.
-- 🔴 **한글 ROM만 빠지면 부팅은 되지만 `SCREEN 9`에서 한글이 안 나온다.** 증상으로 바로 구분된다.
-- ⚠️ openMSX에 기본 포함된 **C-BIOS**(자유 라이선스)로는 **BASIC이 없어 `SCREEN 9`을 칠 수 없다.** 게임 팩 구동만 된다.
+- **파일명은 무관하다.** openMSX는 SHA1 해시로 판별하고, 실행 시 어느 ROM이 없는지 알려준다.
+- 🔴 한글 ROM만 빠지면 부팅은 되지만 `SCREEN 9`에서 한글이 안 나온다. 증상으로 바로 구분된다.
 
-> ⚖️ **ROM 저작권** — CPC-300의 BIOS·한글 ROM은 대우전자 저작물이다.
-> 정당한 경로는 **본인 실기에서 직접 덤프**하는 것이며, **이 저장소는 ROM을 포함하지 않는다**(`.gitignore`로 차단).
+## 3. OS 설치
 
-## 한글 화면 보기
+**Raspberry Pi OS 32-bit Desktop** 을 쓴다. (Bookworm/Trixie 어느 쪽이든 된다 — Trixie 쪽이 openMSX가 더 최신이다)
 
-부팅 후 BASIC 프롬프트(`Ok`)에서
+- **32-bit인 이유**: Pi 3는 RAM 1GB라 64-bit는 메모리만 더 먹는다.
+- **Desktop으로 시작하는 이유**: 검증이 쉽다. 검증이 끝나면 7절에서 콘솔 전용기로 전환하는데, **재설치가 아니라 부팅 설정만 바꾸는 것**이라 손해가 없다.
 
-```basic
-SCREEN 9
+절차:
+
+1. [Raspberry Pi Imager](https://www.raspberrypi.com/software/)에서 — Device: 본인 Pi / OS: **Raspberry Pi OS (other) → 32-bit Desktop**
+2. **⚙️ 고급 설정(Ctrl+Shift+X)에서 반드시**: 호스트명(예: `iq2000`) · **SSH 활성화** · Wi-Fi · 사용자/비밀번호
+3. 부팅 후:
+
+```bash
+sudo apt update && sudo apt full-upgrade -y
+sudo reboot
 ```
 
-📌 **CPC-300은 전원을 켜면 BASIC이 아니라 내장 교육 프로그램 「아이큐 교실」로 먼저 들어간다.**
-**카트리지를 꽂고 부팅해도 마찬가지다** — 아이큐 교실이 먼저 뜨고, **`SELECT`(=F12)를 누르면** 카트리지 게임/BASIC으로 넘어간다. (2026-09-20 라즈베리파이 실기동작 확인)
+## 4. openMSX 설치와 ROM 배치
 
-## ⌨️ 키보드 매핑 — `SELECT` 키가 없다
+```bash
+git clone https://github.com/progh2/iq2000-reborn.git ~/iq2000-reborn
+cd ~/iq2000-reborn
+./scripts/install.sh          # openMSX 설치 + systemroms 디렉터리 생성
+```
 
-MSX에는 **PC 키보드에 없는 키**가 있고, 그게 실제로 필요하다.
+ROM 3개를 `~/.openMSX/share/systemroms/` 에 넣는다. Windows에 있다면 **Windows의 cmd 창에서** (Pi에 접속한 SSH 창이 아니다!):
 
-| MSX 키 | 쓰임 |
-|---|---|
-| **`SELECT`** | 🔴 **마성전설 투명화(무적) 발동** |
-| `STOP` | BASIC 실행 중단 |
-| `GRAPH` | 그래픽 문자 |
-| `CODE` | 한국 기종의 한/영 전환 계열 |
+```cmd
+scp "C:\경로\systemroms\*.rom" 사용자명@iq2000:.openMSX/share/systemroms/
+```
 
-**해결: MSX 키 매트릭스를 직접 두드린다.** 준비된 바인딩을 깔면 F키로 쓸 수 있다.
+> 💡 Windows에서 openMSX를 쓰고 있었다면 ROM은 `문서\openMSX\share\systemroms\` 에 있다.
+> OneDrive를 쓰면 실제 경로가 `C:\Users\이름\OneDrive\문서\...` 일 수 있다. `where /r C:\Users\이름 cpc-300*` 으로 찾자.
+
+부팅 시험:
+
+```bash
+./scripts/msx-run.sh
+```
+
+**「아이큐 교실」 한글 화면이 뜨면 성공.** F12… 는 아직 안 통한다. 다음 절에서 키를 깐다.
+
+## 5. 화면·키보드·치트 설정
+
+### 전체화면 — 순서가 중요하다
+
+**① 먼저 `F11`로 전체화면을 켠다** (설정이 자동 저장돼 계속 유지된다). **② 그다음** 키 바인딩을 깐다 — 바인딩이 F11을 MSX `STOP`으로 덮어쓰기 때문이다.
+
+### MSX 전용 키 바인딩
+
+PC 키보드에는 MSX의 `SELECT`·`STOP`·`GRAPH`·`CODE` 키가 없다. 이 키들이 실제로 필요하다:
 
 ```bash
 mkdir -p ~/.openMSX/share/scripts
-cp scripts/msx-keys.tcl ~/.openMSX/share/scripts/
-#  → F12=SELECT  F11=STOP  F9=GRAPH  F8=CODE  F7=빨리감기(홀드)
+cp ~/iq2000-reborn/scripts/msx-keys.tcl ~/.openMSX/share/scripts/
+cp ~/iq2000-reborn/scripts/cheat-knightmare.tcl ~/.openMSX/share/scripts/
 ```
 
-`~/.openMSX/share/scripts/` 안의 `.tcl` 은 **openMSX 시작 시 자동 실행**된다.
+`~/.openMSX/share/scripts/` 의 `.tcl` 은 openMSX 시작 시 자동 실행된다. **openMSX를 재시작하면 적용:**
 
-### 🔴 마성전설 치트의 4키 동시입력 문제
+| PC 키 | 동작 | 비고 |
+|---|---|---|
+| **F12** | **SELECT** | 아이큐 교실 → 게임/BASIC 진입, 마성전설 무적 발동 |
+| F11 | STOP | BASIC 중단 |
+| F9 | GRAPH | 그래픽 문자 |
+| F8 | CODE (한/영) | `SCREEN 9`에서 한글 입력 전환 |
+| **F7** | **빨리감기 (누르는 동안)** | 아이큐 교실의 한 글자씩 찍는 연출 스킵 |
+| F10 | openMSX 콘솔 | 명령 입력용 (openMSX 기본) |
+| F1 | 게임 일시정지 | 코나미 게임들의 전통 (게임 자체 기능) |
 
-원래 조작은 타이틀에서 **`← + → + Y + SELECT` 를 게임 화면이 나올 때까지 누르고 있는 것**인데, **PC 키보드가 4키 동시입력을 흘리는 경우가 많다**(고스팅). `SELECT`는 아예 없다.
+### 기본 조작 흐름
 
-**해법 — 매트릭스를 한꺼번에 눌러버린다.** 키보드를 거치지 않으니 제한이 사라진다.
+- 부팅 → 아이큐 교실 → **F12** → 게임 또는 BASIC
+- BASIC에서 `SCREEN 9` = 한글 화면 (이 프로젝트의 존재 이유), `SCREEN 0` = 복귀
+- 상세와 키 매트릭스 표 → [`docs/keyboard.md`](docs/keyboard.md)
+
+### 마성전설 치트
+
+원래 조작은 타이틀에서 `←+→+Y+SELECT` 4키를 게임 시작까지 누르고 있는 것 — PC 키보드는 고스팅으로 흘리고 SELECT는 없다. 그래서 키 매트릭스를 직접 누르는 스크립트를 쓴다. **타이틀 화면에서 F10 콘솔:**
 
 ```tcl
-source scripts/cheat-knightmare.tcl
-cheat     ;# 타이틀에서 → 투명화 무한 (콘솔 닫고 4초 안에 SPACE로 시작)
-lives     ;# 타이틀에서 → 목숨25 + 투명3
+cheat     ;# 투명화 무한 장전 — 콘솔 닫고 4초 안에 SPACE로 게임 시작
+lives     ;# 목숨25 + 투명3 버전
 sel       ;# 게임 중 SELECT 한 번 (연타 대용)
 ```
 
-위는 코나미 공식 치트의 실기 재현이고, 조건 없이 쓰는 **openMSX 내장 트레이너**도 있다:
+장전된 판에서 **게임 중 F12를 누르면 투명화(무적)가 발동·유지**된다.
+
+조건 없이 쓰는 **openMSX 내장 트레이너**도 있다 (게임 중 아무 때나):
 
 ```tcl
-trainer "Majyo Densetsu - Knightmare"    ;# 항목 목록 (트레이너 등록명이 이것이다)
+trainer "Majyo Densetsu - Knightmare"    ;# 항목 목록 — 등록명이 이것이다
 trainer "Majyo Densetsu - Knightmare" "Lives: Lives" "Invulnerable: Invulnerable"
-trainer deactivate                       ;# 끄기
+trainer deactivate
 ```
 
-무적·목숨99 외에 스테이지 점프, 무기 선택, 보스 한 방 등도 있다. `all`은 상충 항목(Speed/Stage 일괄)까지 켜지므로 골라 켜는 편이 낫다.
+무적·목숨99 외에 스테이지 점프, 무기 선택, 보스 한 방 등. `all`은 상충 항목까지 켜지므로 골라 켜자.
 
-상세·매트릭스 표·GPIO 버튼 확장 → [`docs/keyboard.md`](docs/keyboard.md)
+## 6. USB 롬팩 만들기와 시험
 
-## 🎮 USB 롬팩 — 이 프로젝트의 핵심
+### 팩 만들기
 
-저용량 USB 메모리를 팩처럼 갈아 끼운다. **꽂으면 그 안의 ROM으로 openMSX가 다시 뜨고, 빼면 「아이큐 교실」로 돌아온다.**
+- USB를 **FAT32**로 포맷, 게임 롬(`.rom`/`.mx1`/`.mx2`) 하나를 루트에 넣는다. **압축(.zip)은 풀어서.**
+- **볼륨 라벨을 영문 게임명으로** (예: `KNIGHTMARE`) — 로그·화면 표시에 쓰인다. 한글 라벨은 깨져 보인다.
+- USB 하나에 게임 하나. 라벨 스티커를 붙이면 팩 맛이 산다.
 
-```
-[USB 팩] → 자동 마운트 → cart-watch.sh (감시)
-                              ↓
-              openMSX (-machine Daewoo_CPC-300 -cart …)
-                              ↓
-                   HDMI 모니터 + USB 키보드
-```
+### Desktop에서 시험
 
-### 📌 왜 「재시작」이 옳은가
-
-실기 MSX도 **카트리지는 전원을 끄고 갈아야 했다.** 켠 상태로 뽑으면 멈추거나 상했다.
-그러므로 **"꽂으면 재시작"은 편법이 아니라 원래 동작에 충실한 방식이다.**
-
-(openMSX의 외부 제어 인터페이스 `-control stdio` 로 재시작 없이 교체하는 것도 가능하지만, 그러면 전원 끄고 갈아 끼우는 맛이 사라진다.)
-
-### 실행
+파일 관리자(작업표시줄 폴더 아이콘) → Edit → Preferences → **Volume Management**:
+"Mount removable media automatically" **켜고**, "Show available options…" 팝업은 **끈다**.
 
 ```bash
+cd ~/iq2000-reborn
 ./scripts/cart-watch.sh
 ```
 
-### 부팅 시 자동 실행
+- 시작하면 아이큐 교실 → **USB 꽂으면 몇 초 안에 게임으로 재시작 → 뽑으면 아이큐 교실 복귀**
+- 실기 MSX도 팩은 전원을 끄고 갈았다. **"꽂으면 재시작"은 편법이 아니라 원래 동작의 재현이다.**
+- openMSX 창을 ✕로 닫으면 감시기가 다시 띄운다. 감시기 종료는 터미널에서 `Ctrl+C`.
 
-**A. 데스크톱 환경 (쉬움)**
+## 7. 전용기 전환 (부팅 자동 실행)
+
+Desktop 검증이 끝났으면 콘솔 전용기로 바꾼다. **각 단계를 검증하고 다음으로 넘어갈 것.**
+
+### ① USB 자동 마운트를 데스크톱 독립으로
+
+콘솔 모드에는 파일 관리자가 없으므로 udev 규칙으로 대체한다:
+
 ```bash
-cp systemd/openmsx-desktop.desktop ~/.config/autostart/
-# Exec= 경로를 본인 환경으로 수정
+cd ~/iq2000-reborn
+sudo cp systemd/99-msx-cart.rules /etc/udev/rules.d/
+sudo udevadm control --reload
+# 검증: USB 뺐다 꽂고
+ls /media/cart          # 롬이 보여야 한다
 ```
 
-**B. 콘솔 전용기 (전용기답게)**
+`/media/cart` 에 **읽기전용**으로 붙는다 — 팩을 아무 때나 확 뽑아도 안전하다.
+
+### ② systemd 유닛 설치
+
 ```bash
 sudo cp systemd/openmsx-cart.service /etc/systemd/system/
+sudo sed -i "s/User=pi/User=$USER/; s|/home/pi|$HOME|g" /etc/systemd/system/openmsx-cart.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now openmsx-cart
-journalctl -u openmsx-cart -f     # 로그
+grep -E "User=|ExecStart=" /etc/systemd/system/openmsx-cart.service   # 본인 계정/경로인지 확인
 ```
-⚠️ `User=` 와 `ExecStart=` 경로를 고칠 것. 데스크톱 없이 띄울 때 `SDL_VIDEODRIVER=kmsdrm` 이 안 잡히면 로그를 보고 조정한다. **A로 먼저 검증하고 B로 옮기는 편이 편하다.**
 
-### 팩 느낌을 살리는 디테일
+**소리를 3.5mm 잭으로 낼 거라면** 유닛의 `#Environment=AUDIODEV=...` 줄 주석을 해제한다 (→ 트러블슈팅 '소리' 항목).
 
-| 아이디어 | |
+### ③ 콘솔 부팅 전환 + 화면 검증
+
+```bash
+sudo raspi-config    # System Options → Boot / Auto Login → Console Autologin
+sudo reboot
+```
+
+재부팅 후 콘솔에서 **한 줄로** (환경변수와 명령은 같은 줄이어야 한다):
+
+```bash
+SDL_VIDEODRIVER=kmsdrm ~/iq2000-reborn/scripts/cart-watch.sh
+```
+
+openMSX가 화면에 뜨면 통과. `Ctrl+C`로 끄고 ④로.
+
+### ④ 자동 실행 활성화 — 완성
+
+```bash
+sudo systemctl enable openmsx-cart
+sudo reboot
+```
+
+재부팅 후 **아무것도 만지지 않아도** 아이큐 교실이 떠야 한다. 로그는 `journalctl -u openmsx-cart -f`.
+
+## 8. 일상 운용 매뉴얼
+
+| 하고 싶은 것 | 방법 |
 |---|---|
-| **USB 하나에 게임 하나** | 여러 개 사두고 갈아 끼운다 |
-| **저용량 구형 USB** (128MB~1GB) | 롬이 32KB~256KB라 딱 맞고, 물건의 무게감도 그 시절 같다 |
-| **볼륨 레이블에 게임명** | `cart-label.sh` 가 읽어 로그·화면에 표시 |
-| **라벨 스티커** | 팩 라벨처럼 붙인다 |
-| **3D 프린터 케이스** | USB를 감싸 MSX 팩 모양으로 |
+| 켜기 | 전원 꽂기 → 잠시 후 아이큐 교실 |
+| 게임 | USB 롬팩 꽂기 → 몇 초 후 게임 |
+| 게임 끝 | **팩 뽑기** → 아이큐 교실 복귀 (읽기전용이라 안전) |
+| BASIC 구경 | 아이큐 교실에서 F12 → 메뉴 따라 진행, `SCREEN 9` / `SCREEN 0` |
+| 무적 | 5절 치트/트레이너 |
+| **끄기** | ⚠️ 시스템 SD카드는 읽기/쓰기 상태다. 가급적 SSH에서 `sudo poweroff` 후 전원을 뽑자. 그냥 뽑아도 대개는 무사하지만 언젠가 SD가 상할 수 있다 |
+| TV로 크게 | HDMI 연결 후 재부팅 — openMSX가 어느 화면에 뜨는지는 감지 순서에 달렸다. 7" 화면이 꺼지지는 않는다 |
+| 데스크톱으로 복귀 | `sudo raspi-config` → Desktop Autologin. 자동 실행 끄기는 `sudo systemctl disable --now openmsx-cart` |
 
-## 스크립트
+## 9. 트러블슈팅
+
+| 증상 | 원인과 해법 |
+|---|---|
+| ⚡ low voltage warning / 전반적으로 굼뜸 | 전원 문제. **microUSB 케이블(짧고 굵은 것)부터 교체**, 어댑터 5V 2.5A+. 확인: `vcgencmd get_throttled` → `0x0`이 정상 |
+| `SDL init failed: x11 not available` | 콘솔에서 환경변수 없이 실행했다. `SDL_VIDEODRIVER=kmsdrm 명령` 을 **한 줄로**. systemd 유닛에는 이미 들어 있다 |
+| 소리가 안 남 (콘솔 모드) | ① 기본 출력이 오디오 없는 HDMI로 간 것 — 유닛에 `Environment=AUDIODEV=sysdefault:CARD=Headphones` (3.5mm 잭. 카드명은 `aplay -l`) ② openMSX 음소거 — F10 콘솔에서 `set mute off`, `set master_volume 100` |
+| `ALSA ... error 524` | 그 출력 장치(주로 HDMI)가 오디오를 지원하지 않는다. 다른 카드로 |
+| 아이큐 교실만 뜨고 게임이 안 뜸 | 정상일 수 있다 — **F12로 진입**하는 것이 실기 동작. 그게 아니면 `./scripts/cart-find.sh` 로 롬을 찾는지 확인 (zip 풀기, 확장자 `.rom`) |
+| 에뮬레이션이 느림 | [docs/raspberry-pi.md](docs/raspberry-pi.md)의 Pi 3 튜닝 절 (`scale_factor 1` 등). 지루한 연출은 F7 빨리감기 |
+| 터치스크린에 가상 키보드가 자꾸 뜸 (Desktop) | Raspberry Pi Configuration → Display → On-screen Keyboard → Disabled. 또는 `sudo apt purge squeekboard` |
+| 팩 라벨이 깨져 보임 | FAT 라벨의 한글 문제. 영문 라벨을 쓰자 |
+
+## 10. 부록 — 선택 확장
+
+필수는 아니지만 해두면 재미있는 것들:
+
+- **스피커 내장** — 3.5mm 잭에 PAM8403 앰프 모듈(천 원 안팎) + 아무 소형 스피커. MSX 소리는 원래 모노다.
+- **물리 SELECT 버튼** — 아케이드 버튼을 GPIO23(핀16)+GND(핀14)에 직결하고 `/boot/firmware/config.txt`에 `dtoverlay=gpio-key,gpio=23,active_low=1,gpio_pull=up,keycode=88` 한 줄이면 버튼이 F12가 된다. **버튼 한 방에 무적** — 키보드 없는 재믹스에선 불가능했던 치트가 버튼이 된다. 상세 → [`docs/keyboard.md`](docs/keyboard.md)
+- **USB 독** — USB 포트에 슬롯/독 형태의 연장 어댑터를 달면 "팩 꽂는 맛"이 산다. 굴러다니는 독을 발견하면 그게 마지막 퍼즐.
+- **오디오 되는 모니터/TV** — 유닛의 `AUDIODEV`를 `sysdefault:CARD=vc4hdmi`로 바꾸면 소리가 TV로 간다. 실기도 TV로 소리를 냈다.
+
+## 11. 프로젝트 여정
+
+- [x] 1단계 — openMSX + 한글 ROM 부팅 (2026-09-18, Windows)
+- [x] 2단계 — 라즈베리파이 이식, 부팅 자동 실행 (2026-09-20)
+- [x] 3단계 — USB 롬팩 감시 (2026-09-20)
+- [x] 4단계 — 키 매핑 + 마성전설 치트 (2026-09-20)
+- [x] ~~5단계 — 케이스~~ → **폐기.** 공식 7" 디스플레이의 전용 케이스로 충분했다
+- [x] ~~6단계 — GPIO 조이스틱·버튼~~ → **폐기.** 요즘 조이스틱은 버튼이 많아 MSX(2버튼)에는 낭비고 값도 아깝다. SELECT 버튼만 부록으로 남김
+- [x] ~~7단계 — Pico 카트리지 덤퍼 / 8단계 — 롬팩 자작~~ → **폐기.** 오버엔지니어링이었다
+
+**이 프로젝트는 완성됐다.** 이후는 운용과 소소한 확장(부록)만 남는다.
+
+## 스크립트·문서
 
 | 파일 | 역할 |
 |---|---|
-| `scripts/install.sh` | openMSX 설치 + `~/.openMSX/share/systemroms` 생성 |
-| `scripts/msx-run.sh` | openMSX 실행. 인자로 롬 경로를 주면 카트리지로 꽂는다 |
-| `scripts/cart-find.sh` | 마운트된 USB에서 `*.rom` / `*.mx1` / `*.mx2` 를 찾아 경로 출력 |
-| `scripts/cart-label.sh` | 해당 USB의 볼륨 레이블 출력 (없으면 파일명) |
-| `scripts/cart-watch.sh` | **USB 감시 → 변화 시 openMSX 재시작** |
-| `scripts/msx-keys.tcl` | MSX 전용 키를 F키에 바인딩 (F12=SELECT 등) |
-| `scripts/cheat-knightmare.tcl` | 마성전설 치트 — 키 매트릭스 직접 조작으로 동시입력 제한 우회 |
+| `scripts/install.sh` | openMSX 설치 + systemroms 디렉터리 생성 |
+| `scripts/msx-run.sh` | openMSX 실행 (인자로 롬 경로 = 카트리지) |
+| `scripts/cart-find.sh` / `cart-label.sh` | 마운트된 USB에서 롬/라벨 찾기 |
+| `scripts/cart-watch.sh` | USB 감시 → 변화 시 openMSX 재시작 |
+| `scripts/msx-keys.tcl` | F키 바인딩 (F12=SELECT 등) |
+| `scripts/cheat-knightmare.tcl` | 마성전설 치트 (`cheat`/`lives`/`sel`) |
+| `systemd/openmsx-cart.service` | 부팅 자동 실행 유닛 |
+| `systemd/99-msx-cart.rules` | USB → `/media/cart` 읽기전용 자동 마운트 |
+| [`docs/raspberry-pi.md`](docs/raspberry-pi.md) | OS·성능 튜닝·전용기 전환·소리 상세 |
+| [`docs/keyboard.md`](docs/keyboard.md) | 키 매트릭스·치트 원리·GPIO 버튼 |
+| [`docs/hardware.md`](docs/hardware.md) | 기종 계보·판별 근거 |
 
 환경변수: `MSX_MACHINE`(기본 `Daewoo_CPC-300`) · `MSX_POLL`(감시 주기 초, 기본 `2`)
 
-⚠️ **자동 마운트 경로는 USB마다 다를 수 있다**(`/media/usb0`, `/media/<LABEL>` 등). `cart-find.sh` 는 `/media`·`/run/media`·`/mnt` 아래 3단계까지 훑어 첫 롬을 쓴다.
-
-## 로드맵
-
-- [x] **1단계 — openMSX + 한글 ROM으로 부팅** (2026-09-18 Windows에서 확인)
-- [x] **2단계 — 라즈베리파이 이식, 부팅 시 자동 실행** (2026-09-20, Pi 3 B+ / Trixie 32-bit / Console Autologin + kmsdrm + systemd)
-- [x] **3단계 — USB 롬팩 감시 동작 검증** (2026-09-20, udev 자동 마운트 + cart-watch, 마성전설 확인)
-- [x] **4단계 — 키보드 매핑 + 마성전설 치트 재현** (2026-09-20, F12=SELECT·`cheat` 동작 확인, 소리는 3.5mm 잭 `AUDIODEV` 지정)
-- [ ] **5단계 — 케이스** (라즈베리파이 숨기고 USB 슬롯만 앞으로)
-- [ ] 6단계 — GPIO 조이스틱·버튼
-- [ ] 7단계 — **Pico(RP2040) 카트리지 덤퍼** → 실물 팩을 ROM으로 (→ [`docs/hardware.md`](docs/hardware.md))
-- [ ] 8단계 — 32KB 단순 롬팩 자작 (EPROM + 디코더)
-
-## 문서
-
-| 문서 | 내용 |
-|---|---|
-| [`docs/raspberry-pi.md`](docs/raspberry-pi.md) | OS 선택(Desktop vs Lite)·설치·openMSX 빌드·ROM 경로·성능 |
-| [`docs/keyboard.md`](docs/keyboard.md) | MSX 전용 키·키 매트릭스 표·치트 우회·GPIO 버튼 확장 |
-| [`docs/hardware.md`](docs/hardware.md) | 기종 판별 근거·대우/재믹스 계열 비교·카트리지 슬롯 50핀·덤퍼 경로 |
-
 ## 링크
 
-**에뮬레이터**
-- openMSX 공식 — https://openmsx.org
+- openMSX — https://openmsx.org
 - IQ-2000 한글 ROM + openMSX 설정 안내 — https://sarc.io/articles/daewoo-iq2000-cpc-300-msx2-openmsx
-
-**자료**
-- MSX Resource Center — https://www.msx.org
-- Generation MSX (소프트 DB) — https://www.generation-msx.nl
+- MSX Resource Center — https://www.msx.org · Generation MSX — https://www.generation-msx.nl
 - JoyNets — MSX-TUTOR 아이큐 교실 — https://hwado.org/249
 - 대우전자의 MSX 컴퓨터 (나무위키) — https://namu.wiki/w/대우전자의%20MSX%20컴퓨터
-- 마성전설 (치트 정보) — https://namu.wiki/w/마성전설
-
-**하드웨어 (참고)**
-- MegaFlashROM SCC+ SD — https://www.msx.org/wiki/MSX_Cartridge_Shop_MegaFlashROM_SCC+_SD
-- Carnivore2 — https://www.8bits4ever.net/product-page/carnivore2
-- SX-E MSX2+ FPGA — https://www.8bits4ever.net/product-page/sxe-msx2-fpga-computer
-- Zemmix Neo (100대 한정·비상용) — https://www.msx.org/wiki/Zemmix_Neo
-
-**실기 구하기**
-- 중고나라 IQ-2000 — https://web.joongna.com/search/IQ-2000
-- 중고나라 MSX — https://web.joongna.com/search/Msx
-
-🔎 실기 구입 시 점검: 전원부 전해 콘덴서 · 키보드 멤브레인(**`SELECT` 키 필수**) · 롬팩 슬롯 접점 산화 · 영상 출력(RF/컴포지트 → RGB 개조나 업스케일러 필요)
+- 실기 구하기 — [중고나라 IQ-2000](https://web.joongna.com/search/IQ-2000) (점검: 전원부 콘덴서·키보드 멤브레인(`SELECT` 필수!)·슬롯 접점·영상 출력)
 
 ## 라이선스
 
