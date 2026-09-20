@@ -114,6 +114,13 @@ lives     ;# 타이틀에서 → 목숨25 + 투명3
 sel       ;# 게임 중 SELECT 한 번 (연타 대용)
 ```
 
+위는 코나미 공식 치트의 실기 재현이고, 조건 없이 쓰는 **openMSX 내장 트레이너**도 있다:
+
+```tcl
+trainer Knightmare all    ;# 게임 중 아무 때나 — 목숨 유지·무적 등 전부 켜기
+trainer deactivate        ;# 끄기
+```
+
 상세·매트릭스 표·GPIO 버튼 확장 → [`docs/keyboard.md`](docs/keyboard.md)
 
 ## 🎮 USB 롬팩 — 이 프로젝트의 핵심
