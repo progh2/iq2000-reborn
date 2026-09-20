@@ -20,6 +20,10 @@
 👉 **권장 순서: Desktop 버전으로 먼저 동작을 검증하고, 그다음 Lite로 옮긴다.**
 처음부터 Lite로 가면 «화면이 안 뜨는데 원인이 openMSX인지 비디오 드라이버인지» 구분이 안 돼 시간을 버린다.
 
+💡 **Desktop을 깔았어도 다시 굽을 필요 없다.** Desktop 이미지 = Lite + 데스크톱 패키지라서,
+`sudo raspi-config` → System Options → Boot / Auto Login → **Console Autologin** 으로 바꾸면
+데스크톱이 안 떠서 사실상 Lite처럼 동작한다 (`kmsdrm` 그대로 사용 가능). 차이는 SD 용량뿐.
+
 > ⚠️ **Bookworm은 Wayland가 기본이다.** 이 저장소의 `systemd/openmsx-cart.service` 는 `SDL_VIDEODRIVER=kmsdrm` 으로 되어 있어 **Lite 기준**이다. Desktop 버전에서 systemd로 띄우려면 이 값을 `wayland` 로 바꾸거나, 아예 데스크톱 autostart(`A` 방법)를 쓴다.
 
 ## 2. 설치
