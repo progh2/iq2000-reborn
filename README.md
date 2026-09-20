@@ -197,9 +197,9 @@ journalctl -u openmsx-cart -f     # 로그
 ## 로드맵
 
 - [x] **1단계 — openMSX + 한글 ROM으로 부팅** (2026-09-18 Windows에서 확인)
-- [ ] **2단계 — 라즈베리파이 이식**, 부팅 시 자동 실행
-- [ ] **3단계 — USB 롬팩 감시** 동작 검증
-- [ ] **4단계 — 키보드 매핑 + 마성전설 치트 재현** (`msx-keys.tcl` · `cheat-knightmare.tcl` 작성 완료, **동작 검증 필요**)
+- [x] **2단계 — 라즈베리파이 이식, 부팅 시 자동 실행** (2026-09-20, Pi 3 B+ / Trixie 32-bit / Console Autologin + kmsdrm + systemd)
+- [x] **3단계 — USB 롬팩 감시 동작 검증** (2026-09-20, udev 자동 마운트 + cart-watch, 마성전설 확인)
+- [x] **4단계 — 키보드 매핑 + 마성전설 치트 재현** (2026-09-20, F12=SELECT·`cheat` 동작 확인, 소리는 3.5mm 잭 `AUDIODEV` 지정)
 - [ ] **5단계 — 케이스** (라즈베리파이 숨기고 USB 슬롯만 앞으로)
 - [ ] 6단계 — GPIO 조이스틱·버튼
 - [ ] 7단계 — **Pico(RP2040) 카트리지 덤퍼** → 실물 팩을 ROM으로 (→ [`docs/hardware.md`](docs/hardware.md))
