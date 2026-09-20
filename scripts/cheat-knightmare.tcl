@@ -35,13 +35,19 @@ set ::KM_N_ROW       4
 set ::KM_N_MASK      0x08   ;# 행4: K L M N O P Q R → N = bit3
 
 # 지정한 조합을 hold_ms 밀리초 동안 누른다
+# ⚠️ openMSX의 after 는 표준 Tcl과 달리 `after time <초> <명령>` 형식이다.
+#    인자 있는 명령 예약이 잘 깨지므로, 누른 조합을 전역에 두고 무인자 proc을 예약한다.
+set ::_kn_active {}
 proc _kn_hold {rows_masks hold_ms} {
+    _kn_release_all                      ;# 이전에 눌린 게 남아 있으면 정리
+    set ::_kn_active $rows_masks
     foreach {r m} $rows_masks { keymatrixdown $r $m }
-    after $hold_ms [list _kn_release $rows_masks]
+    after time [expr {$hold_ms / 1000.0}] _kn_release_all
 }
-proc _kn_release {rows_masks} {
-    foreach {r m} $rows_masks { keymatrixup $r $m }
-    puts "\[cheat\] 해제됨"
+proc _kn_release_all {} {
+    foreach {r m} $::_kn_active { keymatrixup $r $m }
+    if {[llength $::_kn_active]} { puts "\[cheat\] 해제됨" }
+    set ::_kn_active {}
 }
 
 # 투명화 무한 (← + → + Y + SELECT)
@@ -64,7 +70,8 @@ proc knightmare_cheat_lives {{hold_ms 4000}} {
 # 게임 중 투명화 발동용 — SELECT 한 번 톡
 proc msx_select {{hold_ms 60}} {
     keymatrixdown $::KM_SELECT_ROW $::KM_SELECT_MASK
-    after $hold_ms [list keymatrixup $::KM_SELECT_ROW $::KM_SELECT_MASK]
+    after time [expr {$hold_ms / 1000.0}] \
+        "keymatrixup $::KM_SELECT_ROW $::KM_SELECT_MASK"
 }
 
 # ── 짧은 별칭 ──
