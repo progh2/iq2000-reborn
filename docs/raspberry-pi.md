@@ -122,7 +122,65 @@ Desktop 환경 자체가 Pi 3에는 무거우므로, 검증만 Desktop에서 하
 **`Daewoo CPC-300` 머신 정의 + 한글 ROM 조합이 확실히 검증된 것은 openMSX** 다 — Windows에서 「아이큐 교실」이 뜬 그 조합이 openMSX였다.
 애써 맞춘 환경을 그대로 옮기는 것이 안전하다.
 
-## 8. 소리 — 디스플레이에 스피커가 없을 때
+## 8. 콘솔 전용기 전환 체크리스트
+
+Desktop에서 검증이 끝났으면 아래 순서로 전용기가 된다. **각 단계를 검증하고 다음으로 넘어갈 것.**
+
+### ① USB 자동 마운트를 데스크톱 독립으로
+
+데스크톱의 자동 마운트는 파일 관리자가 해주는 것이라 콘솔 모드에선 사라진다. udev 규칙으로 대체한다:
+
+```bash
+sudo cp systemd/99-msx-cart.rules /etc/udev/rules.d/
+sudo udevadm control --reload
+# 검증: USB를 뺐다 꽂고
+ls /media/cart          # 롬 파일이 보여야 한다
+```
+
+- `/media/cart` 에 **읽기전용**으로 마운트된다 — 아무 때나 확 뽑아도 안전
+- 파일 관리자의 자동 마운트 옵션은 이제 꺼도 된다 (이중 마운트 방지)
+
+### ② systemd 유닛 설치
+
+```bash
+sudo cp systemd/openmsx-cart.service /etc/systemd/system/
+sudo sed -i "s/User=pi/User=$USER/; s|/home/pi|$HOME|g" /etc/systemd/system/openmsx-cart.service
+sudo systemctl daemon-reload
+```
+
+아직 `enable` 하지 말 것 — ③에서 콘솔 부팅을 먼저 확인한다.
+
+### ③ 콘솔 부팅 전환 + kmsdrm 검증
+
+```bash
+sudo raspi-config    # System Options → Boot / Auto Login → Console Autologin
+sudo reboot
+```
+
+재부팅 후 콘솔(또는 SSH)에서 **수동으로 한 번** 띄워본다:
+
+```bash
+SDL_VIDEODRIVER=kmsdrm ~/iq2000-reborn/scripts/cart-watch.sh
+```
+
+화면에 openMSX가 뜨면 성공. `Ctrl+C` 로 끄고 ④로.
+(안 뜨면 이 단계에서 잡는다 — 유닛까지 켜놓고 헤매지 말 것)
+
+### ④ 자동 실행 활성화
+
+```bash
+sudo systemctl enable --now openmsx-cart
+journalctl -u openmsx-cart -f    # 로그 확인
+```
+
+이제 **전원만 꽂으면 아이큐 교실, 팩 꽂으면 게임**이다.
+
+### 되돌리기
+
+- 데스크톱으로: `raspi-config` → Desktop Autologin
+- 자동 실행 끄기: `sudo systemctl disable --now openmsx-cart`
+
+## 9. 소리 — 디스플레이에 스피커가 없을 때
 
 MSX의 PSG 사운드는 **모노**이고, 실기도 TV 스피커 하나로 소리를 냈다. 작은 모노 스피커 하나면 오히려 그 시절에 충실하다.
 
