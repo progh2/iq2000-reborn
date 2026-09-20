@@ -1,8 +1,11 @@
-# 라즈베리파이 4 — OS 설치와 설정
+# 라즈베리파이 — OS 설치와 설정
 
 ## 1. 어떤 OS를 쓸까
 
-**Raspberry Pi OS (64-bit) / Bookworm** 를 쓴다. Debian 기반이라 **openMSX가 apt 저장소에 있다**.
+**Raspberry Pi OS / Bookworm** 를 쓴다. Debian 기반이라 **openMSX가 apt 저장소에 있다**.
+
+- **Pi 4 이상** → 64-bit / **Pi 3 (RAM 1GB)** → **32-bit** (64-bit는 메모리만 더 먹는다)
+- 이 문서는 Bookworm(Debian 12) 기준이지만 **Trixie(Debian 13)도 무방하다** — 경로·절차가 같고 apt의 openMSX가 더 최신이다
 
 변종이 둘인데 목적에 따라 갈린다.
 
@@ -32,6 +35,14 @@
 sudo apt update && sudo apt full-upgrade -y
 sudo reboot
 ```
+
+### ⚡ low voltage warning이 뜨면
+
+경고 기준은 4.63V. 저전압이면 **CPU가 600MHz로 스로틀링**돼 openMSX 성능이 깎이고, 심하면 SD가 상한다.
+
+1. **microUSB 케이블 교체가 먼저다** — 짧고(≤1m) 굵은 충전 전용급으로. 얇은 데이터 케이블이 제일 흔한 원인
+2. 어댑터는 5V 2.5A 이상. QC(고속충전) 어댑터·모니터 USB 포트·PC USB는 부적합
+3. 확인: `vcgencmd get_throttled` → `0x0` 정상 / `0x50000` 과거에 있었음 / `0x50005` 지금도 저전압
 
 ## 3. openMSX 설치
 
@@ -83,11 +94,74 @@ mkdir -p ~/.openMSX/share/systemroms
 **Pi 4면 MSX2 에뮬레이션에 충분하다.** openMSX는 정확도를 우선하는 에뮬레이터라 fMSX·blueMSX보다 무겁지만, MSX2는 1986년 기계다.
 
 - Pi 4 (2GB 이상) — 여유롭다
-- Pi 3 — 돌지만 여유가 적다. 전체화면 스케일링·셰이더를 끄는 편이 낫다
+- Pi 3 — 돌지만 여유가 적다 → 아래 튜닝 절 참조
 - Pi 5 — 과분하다
+
+### Pi 3 튜닝
+
+Pi 3(Cortex-A53 4코어 1.2GHz, RAM 1GB)에서 병목은 Z80 에뮬레이션이 아니라 **렌더링과 리샘플러**다. CPC-300은 SCC·MSX-MUSIC 같은 무거운 확장이 없는 표준 MSX2 구성이라, 아래만 깎으면 100% 속도가 나온다.
+
+| 항목 | 설정 | 이유 |
+|---|---|---|
+| OS | **32-bit Lite** 권장 | RAM 1GB에서 64-bit는 메모리를 더 먹는다. openMSX는 armhf apt 패키지가 있다 |
+| 화면 | `set scale_factor 1` (부족하면 2) | 스케일링이 제일 비싸다 |
+| 셰이더 | `set scale_algorithm simple` | scanline·hq 계열 효과를 끈다 |
+| 소리 | `set resampler fast` | 기본 리샘플러가 의외로 CPU를 먹는다 |
+| 되감기 | `set auto_enable_reverse off` | reverse 버퍼가 1GB RAM에서 부담이다 |
+
+설정은 openMSX 콘솔(`F10`)에서 치면 `settings.xml` 에 저장돼 다음부터 유지된다.
+Desktop 환경 자체가 Pi 3에는 무거우므로, 검증만 Desktop에서 하고 **전용기는 Lite + `kmsdrm`** 로 가는 편이 좋다.
 
 ## 7. 왜 레트로 배포판(RetroPie·Batocera)을 안 쓰는가
 
 이들에도 MSX 코어가 있지만 대부분 **blueMSX·fMSX 기반**이다.
 **`Daewoo CPC-300` 머신 정의 + 한글 ROM 조합이 확실히 검증된 것은 openMSX** 다 — Windows에서 「아이큐 교실」이 뜬 그 조합이 openMSX였다.
 애써 맞춘 환경을 그대로 옮기는 것이 안전하다.
+
+## 8. 소리 — 디스플레이에 스피커가 없을 때
+
+MSX의 PSG 사운드는 **모노**이고, 실기도 TV 스피커 하나로 소리를 냈다. 작은 모노 스피커 하나면 오히려 그 시절에 충실하다.
+
+| 방법 | 비용·난이도 | 비고 |
+|---|---|---|
+| **3.5mm 잭 + 앰프 내장 스피커** | ⭐ 제일 쉽다 | Pi 3의 AV 잭에 꽂는다. PWM 방식이라 음질은 평범하지만 PSG에는 충분 |
+| USB 스피커 / USB 오디오 동글 | ⭐ | 잭 음질이 거슬리면 |
+| HDMI 디스플레이의 내장 스피커 | — | 키트에 스피커가 있으면 그걸로 끝. DSI 디스플레이는 소리가 안 나온다 |
+| **I2S 앰프 보드(MAX98357A 등) + 스피커** | ⭐⭐ 납땜 | GPIO에 물리고 케이스에 스피커를 내장 — **전용기답다.** 모노라 한 채널이면 된다 |
+
+출력 경로가 HDMI로 잡혀 있으면 잭에서 소리가 안 난다. `sudo raspi-config` → System Options → Audio 에서 출력을 고른다.
+
+### 구글 AIY Voice Kit V1 / KT AI 메이커스 키트 재활용
+
+구글 AIY Voice Kit **V1**의 Voice HAT — 그리고 그 설계를 그대로 쓴 **KT 기가지니 AI 메이커스 키트**(아크릴 큐브 케이스) — 에는 I2S 클래스D 앰프(MAX98357A 계열)와 스피커 단자가 있다. **AIY 소프트웨어 없이** 사운드카드로만 쓸 수 있다.
+
+1. HAT를 Pi에 얹고 스피커를 단자에 연결
+2. `/boot/firmware/config.txt` 에 추가:
+   ```
+   dtoverlay=googlevoicehat-soundcard
+   ```
+   (이 오버레이는 현행 Raspberry Pi OS 커널에 기본 포함돼 있다)
+3. 재부팅 후 확인:
+   ```bash
+   aplay -l                      # snd_rpi_googlevoicehat… 카드가 보여야 한다
+   speaker-test -t sine -c 2     # 삑— 소리 확인
+   ```
+4. 카드가 여럿이면 `raspi-config` 또는 `~/.asoundrc` 로 기본 출력을 지정한다
+
+**HDMI 오디오와 공존한다.** 오버레이를 넣어도 HDMI 사운드카드(`vc4hdmi`)는 그대로 살아 있어, 스피커 달린 모니터로 옮길 때 **배선 변경 없이 출력만 바꾸면 된다.**
+
+- 기본 출력 전환: `sudo raspi-config` → System Options → Audio
+- openMSX만 지정하려면 systemd 유닛에 환경변수로: `Environment=AUDIODEV=sysdefault:CARD=vc4hdmi` (HAT로 되돌릴 땐 해당 카드명으로 — 카드명은 `aplay -l` 로 확인)
+
+- 7인치 공식 터치스크린(DSI)은 GPIO를 쓰지 않으므로 HAT와 **같이 쓸 수 있다.** 단, HAT가 GPIO 핀을 덮으므로 디스플레이 전원을 점퍼선으로 못 준다 → **Pi의 USB-A → 디스플레이 microUSB** 케이블로 주거나(어댑터는 5V 3A급), 디스플레이에 전원을 따로 꽂는다. 소리 날 때 화면이 깜빡이면 저전압이니 후자로 전환
+- 키트의 **아케이드 버튼**은 `SELECT` 물리 버튼으로 재활용할 수 있다 → [`keyboard.md`](keyboard.md)의 GPIO 버튼 절
+- 마이크 보드는 이 프로젝트에서 쓸 일이 없다
+- ⚠️ **V2(작은 Bonnet + Pi Zero 동봉)는 해당 없음** — 전용 드라이버가 방치돼 최신 커널에서 빌드가 어렵다. 스피커만 떼서 다른 앰프에 물릴 것
+
+**HAT가 케이스와 간섭돼 못 쓸 때** (뒷면 관통 핀이 튀어나와 걸리는 경우):
+
+- 관통 핀은 미사용 브레이크아웃이라 **니퍼로 바짝 잘라도 된다** — HAT를 살리고 싶으면 이 방법
+- **HAT 없이 가도 기능 손실이 거의 없다**:
+  - 소리 → **HDMI(모니터/TV 스피커)**. 실기가 TV로 소리를 내던 방식 그대로다. 또는 Pi의 3.5mm 잭
+  - 아케이드 버튼 → HAT 불필요. 버튼에서 점퍼선 2가닥을 **GPIO23(물리핀 16)과 GND(물리핀 14)** 에 직접 꽂으면 `gpio-key` 오버레이가 그대로 동작한다
+  - 키트 스피커 → 보류. 나중에 원하면 PAM8403(천 원)이나 트랜지스터 앰프로 3.5mm 잭에 물린다

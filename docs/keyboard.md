@@ -97,6 +97,23 @@ cp scripts/msx-keys.tcl ~/.openMSX/share/scripts/
 
 전용기 케이스를 만들 때, GPIO 버튼을 `SELECT` 에 연결하면 실기 감각이 살아난다.
 
+### 방법 A — `gpio-key` 오버레이 (권장: 코드 0줄)
+
+버튼을 **커널이 키보드 키로 인식**하게 만든다. `/boot/firmware/config.txt` 에:
+
+```
+dtoverlay=gpio-key,gpio=23,active_low=1,gpio_pull=up,keycode=88
+```
+
+- `keycode=88` = `KEY_F12` → 버튼이 **F12 키보드**가 된다
+- `msx-keys.tcl` 이 이미 F12를 `SELECT` 로 바인딩하므로 **그걸로 끝**. 데몬도 스크립트도 필요 없다
+- 버튼은 해당 GPIO와 GND 사이에 연결 (내부 풀업 사용)
+- AIY Voice Kit V1 / KT AI 메이커스 키트의 아케이드 버튼은 **GPIO23** 에 물려 있다 — HAT를 얹으면 배선도 끝난 셈. 키트가 다르면 핀을 확인할 것
+
+### 방법 B — 외부 제어 인터페이스 (버튼을 늘릴 때)
+
+버튼마다 다른 매트릭스 조합(치트 콤보 등)을 쏘고 싶으면 프로그램이 필요하다.
+
 1. GPIO 입력을 읽는 작은 파이썬·C 프로그램을 띄운다
 2. 버튼이 눌리면 openMSX **외부 제어 인터페이스**(`openmsx -control stdio`)로 `keymatrixdown 7 0x40` 을 보낸다
 3. 떼면 `keymatrixup 7 0x40`

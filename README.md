@@ -40,7 +40,7 @@ openMSX로 IQ-2000을 부팅하고, 저용량 USB 메모리를 「롬팩」처�
 👉 **Desktop으로 먼저 동작을 확인하고 Lite로 옮긴다.** 처음부터 Lite로 가면 화면이 안 뜰 때 원인을 못 가린다.
 ⚠️ **Bookworm은 Wayland가 기본이다.** 이 저장소의 systemd 유닛은 `kmsdrm`(=Lite 기준)이므로 Desktop에서 쓰려면 값을 바꿔야 한다.
 
-**Pi 4면 MSX2에 충분하다.** 설치·빌드·경로 상세 → [`docs/raspberry-pi.md`](docs/raspberry-pi.md)
+**Pi 4면 MSX2에 충분하고, Pi 3도 설정을 깎으면 된다.** 설치·빌드·경로·Pi 3 튜닝 상세 → [`docs/raspberry-pi.md`](docs/raspberry-pi.md)
 
 ## 빠른 시작
 
