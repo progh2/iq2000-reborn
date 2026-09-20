@@ -117,9 +117,12 @@ sel       ;# 게임 중 SELECT 한 번 (연타 대용)
 위는 코나미 공식 치트의 실기 재현이고, 조건 없이 쓰는 **openMSX 내장 트레이너**도 있다:
 
 ```tcl
-trainer Knightmare all    ;# 게임 중 아무 때나 — 목숨 유지·무적 등 전부 켜기
-trainer deactivate        ;# 끄기
+trainer "Majyo Densetsu - Knightmare"    ;# 항목 목록 (트레이너 등록명이 이것이다)
+trainer "Majyo Densetsu - Knightmare" "Lives: Lives" "Invulnerable: Invulnerable"
+trainer deactivate                       ;# 끄기
 ```
+
+무적·목숨99 외에 스테이지 점프, 무기 선택, 보스 한 방 등도 있다. `all`은 상충 항목(Speed/Stage 일괄)까지 켜지므로 골라 켜는 편이 낫다.
 
 상세·매트릭스 표·GPIO 버튼 확장 → [`docs/keyboard.md`](docs/keyboard.md)
 
