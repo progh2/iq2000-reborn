@@ -67,7 +67,12 @@ proc msx_select {{hold_ms 60}} {
     after $hold_ms [list keymatrixup $::KM_SELECT_ROW $::KM_SELECT_MASK]
 }
 
+# ── 짧은 별칭 ──
+proc cheat  {args} { knightmare_cheat       {*}$args }
+proc lives  {args} { knightmare_cheat_lives {*}$args }
+proc sel    {args} { msx_select             {*}$args }
+
 puts "마성전설 치트 로드됨:"
-puts "  knightmare_cheat        타이틀에서 실행 → 투명화 무한"
-puts "  knightmare_cheat_lives  타이틀에서 실행 → 목숨25 + 투명3"
-puts "  msx_select              게임 중 SELECT 한 번 (연타 대용)"
+puts "  cheat   타이틀에서 실행 → 투명화 무한   (= knightmare_cheat)"
+puts "  lives   타이틀에서 실행 → 목숨25+투명3  (= knightmare_cheat_lives)"
+puts "  sel     게임 중 SELECT 한 번, 연타 대용 (= msx_select)"

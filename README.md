@@ -109,9 +109,9 @@ cp scripts/msx-keys.tcl ~/.openMSX/share/scripts/
 
 ```tcl
 source scripts/cheat-knightmare.tcl
-knightmare_cheat          ;# 타이틀에서 → 투명화 무한
-knightmare_cheat_lives    ;# 타이틀에서 → 목숨25 + 투명3
-msx_select                ;# 게임 중 SELECT 한 번 (연타 대용)
+cheat     ;# 타이틀에서 → 투명화 무한 (콘솔 닫고 4초 안에 SPACE로 시작)
+lives     ;# 타이틀에서 → 목숨25 + 투명3
+sel       ;# 게임 중 SELECT 한 번 (연타 대용)
 ```
 
 상세·매트릭스 표·GPIO 버튼 확장 → [`docs/keyboard.md`](docs/keyboard.md)
