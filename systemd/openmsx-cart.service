@@ -20,6 +20,9 @@ User=pi
 Environment=SDL_VIDEODRIVER=kmsdrm
 Environment=MSX_MACHINE=Daewoo_CPC-300
 Environment=MSX_POLL=2
+# 소리가 엉뚱한 곳(HDMI 등)으로 가면 출력 장치를 직접 지정한다. 카드명은 `aplay -l` 참고.
+# 예: 3.5mm 잭 = Headphones / HDMI = vc4hdmi
+#Environment=AUDIODEV=sysdefault:CARD=Headphones
 ExecStart=/home/pi/iq2000-reborn/scripts/cart-watch.sh
 Restart=always
 RestartSec=3
