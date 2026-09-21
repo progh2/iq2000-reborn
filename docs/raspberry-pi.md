@@ -1,11 +1,16 @@
+---
+title: 라즈베리파이 설정
+description: 검증된 Pi 3 B+ 구성과 전원, 성능 튜닝, 화면 및 오디오 설정.
+---
+
 # 라즈베리파이 — OS 설치와 설정
 
 ## 1. 어떤 OS를 쓸까
 
-**Raspberry Pi OS / Bookworm** 를 쓴다. Debian 기반이라 **openMSX가 apt 저장소에 있다**.
+**검증된 기준 구성은 Pi 3 B+ + Raspberry Pi OS Trixie 32-bit Desktop → 콘솔 자동 로그인**이다. Debian 기반이라 **openMSX가 apt 저장소에 있다**.
 
 - **Pi 4 이상** → 64-bit / **Pi 3 (RAM 1GB)** → **32-bit** (64-bit는 메모리만 더 먹는다)
-- 이 문서는 Bookworm(Debian 12) 기준이지만 **Trixie(Debian 13)도 무방하다** — 경로·절차가 같고 apt의 openMSX가 더 최신이다
+- Bookworm 등 다른 환경은 참고 구성이다. 설치된 openMSX와 디스플레이 드라이버에 따라 별도 확인이 필요하다.
 
 변종이 둘인데 목적에 따라 갈린다.
 
@@ -17,28 +22,18 @@
 | `SDL_VIDEODRIVER` | `wayland` 또는 `x11` | **`kmsdrm`** |
 | 부팅 속도·군더더기 | 느리고 많다 | 빠르고 깔끔 — **전용기답다** |
 
-👉 **권장 순서: Desktop 버전으로 먼저 동작을 검증하고, 그다음 Lite로 옮긴다.**
+👉 **권장 순서: Desktop 버전으로 먼저 동작을 검증하고, 그다음 콘솔 자동 로그인으로 전환한다.**
 처음부터 Lite로 가면 «화면이 안 뜨는데 원인이 openMSX인지 비디오 드라이버인지» 구분이 안 돼 시간을 버린다.
 
 💡 **Desktop을 깔았어도 다시 굽을 필요 없다.** Desktop 이미지 = Lite + 데스크톱 패키지라서,
 `sudo raspi-config` → System Options → Boot / Auto Login → **Console Autologin** 으로 바꾸면
 데스크톱이 안 떠서 사실상 Lite처럼 동작한다 (`kmsdrm` 그대로 사용 가능). 차이는 SD 용량뿐.
 
-> ⚠️ **Bookworm은 Wayland가 기본이다.** 이 저장소의 `systemd/openmsx-cart.service` 는 `SDL_VIDEODRIVER=kmsdrm` 으로 되어 있어 **Lite 기준**이다. Desktop 버전에서 systemd로 띄우려면 이 값을 `wayland` 로 바꾸거나, 아예 데스크톱 autostart(`A` 방법)를 쓴다.
+> ⚠️ **Bookworm은 Wayland가 기본이다.** 이 저장소의 `systemd/openmsx-cart.service` 는 `SDL_VIDEODRIVER=kmsdrm` 으로 되어 있어 **Lite 기준**이다. Desktop 버전에서 systemd로 띄우려면 이 값을 `wayland` 로 바꾸거나, 데스크톱 세션의 autostart를 쓴다. 시스템 서비스는 Wayland 세션의 소켓·권한을 자동으로 물려받지 않는다.
 
 ## 2. 설치
 
-1. **Raspberry Pi Imager** 로 microSD에 굽는다 — https://www.raspberrypi.com/software/
-2. Imager의 **⚙️ 고급 설정**에서 미리 해두면 편하다
-   - 호스트명 (예: `iq2000`)
-   - **SSH 활성화** ← 헤드리스로 작업하려면 필수
-   - Wi-Fi, 사용자명·비밀번호, 로케일/키보드
-3. 부팅 후
-
-```bash
-sudo apt update && sudo apt full-upgrade -y
-sudo reboot
-```
+설치 순서는 [설치와 사용 안내의 OS 설치](../README.md#3-os-설치)를 따른다. 이 문서는 전원·성능·오디오의 상세 참고 자료다.
 
 ### ⚡ low voltage warning이 뜨면
 
@@ -91,7 +86,7 @@ mkdir -p ~/.openMSX/share/systemroms
 
 ## 5. 전체화면
 
-한 번 띄운 뒤 OSD 메뉴에서 전체화면을 켜면 `~/.openMSX/share/settings.xml` 에 저장돼 다음부터 유지된다.
+F10 콘솔에서 `set fullscreen on`으로 켠다 (`off`로 해제). 설정은 `~/.openMSX/share/settings.xml` 에 저장돼 다음부터 유지된다.
 
 ## 6. 성능
 
@@ -122,63 +117,11 @@ Desktop 환경 자체가 Pi 3에는 무거우므로, 검증만 Desktop에서 하
 **`Daewoo CPC-300` 머신 정의 + 한글 ROM 조합이 확실히 검증된 것은 openMSX** 다 — Windows에서 「아이큐 교실」이 뜬 그 조합이 openMSX였다.
 애써 맞춘 환경을 그대로 옮기는 것이 안전하다.
 
-## 8. 콘솔 전용기 전환 체크리스트
+## 8. 콘솔 전용기 전환
 
-Desktop에서 검증이 끝났으면 아래 순서로 전용기가 된다. **각 단계를 검증하고 다음으로 넘어갈 것.**
+서비스·USB 규칙 설치와 단계별 화면 검증은 [설치와 사용 안내의 전용기 전환](../README.md#7-전용기-전환-부팅-자동-실행)을 따른다. 설치 절차는 그 문서에서 관리한다.
 
-### ① USB 자동 마운트를 데스크톱 독립으로
-
-데스크톱의 자동 마운트는 파일 관리자가 해주는 것이라 콘솔 모드에선 사라진다. udev 규칙으로 대체한다:
-
-```bash
-sudo cp systemd/99-msx-cart.rules /etc/udev/rules.d/
-sudo udevadm control --reload
-# 검증: USB를 뺐다 꽂고
-ls /media/cart          # 롬 파일이 보여야 한다
-```
-
-- `/media/cart` 에 **읽기전용**으로 마운트된다 — 아무 때나 확 뽑아도 안전
-- 파일 관리자의 자동 마운트 옵션은 이제 꺼도 된다 (이중 마운트 방지)
-
-### ② systemd 유닛 설치
-
-```bash
-sudo cp systemd/openmsx-cart.service /etc/systemd/system/
-sudo sed -i "s/User=pi/User=$USER/; s|/home/pi|$HOME|g" /etc/systemd/system/openmsx-cart.service
-sudo systemctl daemon-reload
-```
-
-아직 `enable` 하지 말 것 — ③에서 콘솔 부팅을 먼저 확인한다.
-
-### ③ 콘솔 부팅 전환 + kmsdrm 검증
-
-```bash
-sudo raspi-config    # System Options → Boot / Auto Login → Console Autologin
-sudo reboot
-```
-
-재부팅 후 콘솔(또는 SSH)에서 **수동으로 한 번** 띄워본다:
-
-```bash
-SDL_VIDEODRIVER=kmsdrm ~/iq2000-reborn/scripts/cart-watch.sh
-```
-
-화면에 openMSX가 뜨면 성공. `Ctrl+C` 로 끄고 ④로.
-(안 뜨면 이 단계에서 잡는다 — 유닛까지 켜놓고 헤매지 말 것)
-
-### ④ 자동 실행 활성화
-
-```bash
-sudo systemctl enable --now openmsx-cart
-journalctl -u openmsx-cart -f    # 로그 확인
-```
-
-이제 **전원만 꽂으면 아이큐 교실, 팩 꽂으면 게임**이다.
-
-### 되돌리기
-
-- 데스크톱으로: `raspi-config` → Desktop Autologin
-- 자동 실행 끄기: `sudo systemctl disable --now openmsx-cart`
+업데이트·백업·서비스 중지 방법은 [진단·관리](maintenance.md)를 참고한다.
 
 ## 9. 소리 — 디스플레이에 스피커가 없을 때
 

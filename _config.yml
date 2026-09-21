@@ -1,4 +1,26 @@
 title: iq2000-reborn
 description: 대우 IQ-2000(CPC-300) — 국산 MSX2를 라즈베리파이로 재현한 전용기
-theme: jekyll-theme-cayman
+url: https://progh2.github.io
+baseurl: /iq2000-reborn
 lang: ko
+markdown: kramdown
+kramdown:
+  input: GFM
+plugins:
+  - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-sitemap
+relative_links:
+  enabled: true
+  collections: false
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+exclude:
+  - tests
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .github

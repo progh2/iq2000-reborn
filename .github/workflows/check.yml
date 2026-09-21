@@ -1,0 +1,25 @@
+name: Validate scripts and website
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax and lint
+        run: |
+          for script in scripts/*.sh; do bash -n "$script"; done
+          shellcheck scripts/*.sh
+      - name: Regression tests (no ROM or hardware)
+        run: python3 -m unittest discover -s tests -v
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - run: bundle exec jekyll build --trace
+      - run: python3 tests/check_site.py _site /iq2000-reborn

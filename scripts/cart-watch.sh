@@ -1,45 +1,80 @@
 #!/usr/bin/env bash
-# ── USB 롬팩 감시기 ──
-# USB가 꽂히거나 빠지면 openMSX를 다시 띄운다.
-#
-# 📌 실기 MSX도 카트리지는 전원을 끄고 갈아야 했다.
-#    "꽂으면 재시작"은 편법이 아니라 원래 동작에 충실한 방식이다.
-#
-# 환경변수
-#   MSX_POLL     감시 주기(초). 기본 2
-#   MSX_MACHINE  머신 이름. 기본 Daewoo_CPC-300
+# USB 변화 및 openMSX 종료를 감시한다. 설정은 docs/maintenance.md 참고.
 set -uo pipefail
-
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INTERVAL="${MSX_POLL:-2}"
-last="__init__"
+RETRY="${MSX_RESTART_DELAY:-3}"
+for value in "$INTERVAL" "$RETRY"; do
+  if [[ ! "$value" =~ ^[1-9][0-9]{0,2}$ ]] || (( value > 300 )); then
+    echo "[watch] MSX_POLL과 MSX_RESTART_DELAY는 1~300의 정수(초)여야 합니다." >&2
+    exit 2
+  fi
+done
+command -v openmsx >/dev/null 2>&1 || { echo "[watch] openmsx를 먼저 설치하세요." >&2; exit 127; }
+command -v flock >/dev/null 2>&1 || { echo "[watch] flock(util-linux)이 필요합니다." >&2; exit 127; }
+# systemd와 Desktop에서 XDG_RUNTIME_DIR 유무가 달라도 같은 잠금을 쓴다.
+lockdir="${XDG_CACHE_HOME:-$HOME/.cache}/iq2000-reborn"
+mkdir -p "$lockdir" || exit 1
+exec 9>"$lockdir/watch.lock"
+flock -n 9 || { echo "[watch] 이미 실행 중입니다." >&2; exit 1; }
 pid=""
-
-cleanup() { [[ -n "$pid" ]] && kill "$pid" 2>/dev/null; exit 0; }
-trap cleanup INT TERM
-
-launch() {
-  local cart="$1"
-  if [[ -n "$pid" ]]; then
-    kill "$pid" 2>/dev/null || true
-    wait "$pid" 2>/dev/null || true
-  fi
-  if [[ -n "$cart" ]]; then
-    echo "[cart] 꽂힘: $("$HERE/cart-label.sh" "$cart")  ($cart)"
-    "$HERE/msx-run.sh" "$cart" &
-  else
-    echo "[cart] 비어 있음 → 아이큐 교실"
-    "$HERE/msx-run.sh" &
-  fi
-  pid=$!
+sleeper=""
+stop() {
+  [[ -n "$pid" ]] || return 0
+  kill "$pid" 2>/dev/null || true
+  local deadline=$((SECONDS + 3))
+  while kill -0 "$pid" 2>/dev/null && (( SECONDS < deadline )); do sleep 0.1; done
+  kill -KILL "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+  pid=""
 }
-
-echo "[watch] 시작 (주기 ${INTERVAL}s)"
-while true; do
-  cur="$("$HERE/cart-find.sh" 2>/dev/null || true)"
-  if [[ "$cur" != "$last" ]]; then
-    launch "$cur"
-    last="$cur"
+cleanup() {
+  if [[ -n "$sleeper" ]]; then
+    kill "$sleeper" 2>/dev/null || true
+    wait "$sleeper" 2>/dev/null || true
   fi
-  sleep "$INTERVAL"
+  stop
+}
+trap 'exit 0' INT TERM
+trap cleanup EXIT
+last="__init__"
+last_error=""
+retry_at=0
+echo "[watch] 시작 (주기 ${INTERVAL}s, 재실행 대기 ${RETRY}s)"
+while true; do
+  result="$("$HERE/cart-find.sh" 2>&1)"
+  status=$?
+  cur=""; error=""
+  if (( status == 0 )); then cur="$result"; elif (( status != 1 )); then error="$result"; fi
+  if [[ "$error" != "$last_error" ]]; then
+    [[ -z "$error" ]] || printf '%s\n' "$error" >&2
+    last_error="$error"
+  fi
+  identity="$cur"
+  [[ -z "$cur" ]] || identity+="$(stat -Lc '%d:%i:%s:%Y:%Z' -- "$cur" 2>/dev/null)"
+  if [[ "$identity" != "$last" ]]; then
+    stop
+    last="$identity"
+    retry_at=0
+  fi
+  if [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
+    wait "$pid"; status=$?
+    echo "[watch] openMSX 종료 (코드 $status). ${RETRY}초 후 재실행합니다." >&2
+    pid=""
+    retry_at=$((SECONDS + RETRY))
+  fi
+  if [[ -z "$pid" ]] && (( SECONDS >= retry_at )); then
+    if [[ -n "$cur" ]]; then
+      echo "[cart] 꽂힘: $("$HERE/cart-label.sh" "$cur") ($cur)"
+      "$HERE/msx-run.sh" "$cur" 9>&- &
+    else
+      echo "[cart] 비어 있음 → 아이큐 교실"
+      "$HERE/msx-run.sh" 9>&- &
+    fi
+    pid=$!
+  fi
+  sleep "$INTERVAL" 9>&- &
+  sleeper=$!
+  wait "$sleeper" || true
+  sleeper=""
 done

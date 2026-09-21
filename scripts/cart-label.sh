@@ -5,11 +5,11 @@ set -uo pipefail
 ROM="${1:-}"
 [[ -n "$ROM" ]] || exit 1
 
-mp="$(df --output=target "$ROM" 2>/dev/null | tail -n1 | xargs)"
-label="$(lsblk -no LABEL "$(findmnt -no SOURCE --target "$mp" 2>/dev/null)" 2>/dev/null | xargs || true)"
+label="$(findmnt --noheadings --raw --output LABEL --target "$ROM" 2>/dev/null || true)"
+printf -v label '%b' "$label"
 
 if [[ -n "$label" ]]; then
-  echo "$label"
+  printf '%s\n' "$label"
 else
   b="$(basename "$ROM")"
   echo "${b%.*}"

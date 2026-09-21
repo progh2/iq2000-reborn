@@ -1,18 +1,4 @@
-# USB 롬팩 자동 마운트 — 데스크톱 없이(콘솔 전용기) 동작하는 udev 규칙
-#
-# 데스크톱의 자동 마운트는 파일 관리자(PCManFM)가 해주지만, Console Autologin
-# 전용기에는 그게 없다. 이 규칙이 USB 파티션을 /media/cart 에 읽기전용으로 마운트한다.
-#
-# 설치:
-#   sudo cp systemd/99-msx-cart.rules /etc/udev/rules.d/
-#   sudo udevadm control --reload
-# 확인:
-#   USB를 꽂고 → ls /media/cart
-#
-# 📌 읽기전용(ro)인 이유: 롬팩은 원래 읽기전용이고, ro 마운트면 아무 때나
-#    확 뽑아도 파일시스템이 상하지 않는다 — "전원 켠 채 팩 뽑기"에 안전하다.
-# ⚠️ 파티션 없는(통짜 포맷) USB는 KERNEL=="sd[a-z]" 쪽 규칙이 잡는다.
-
-ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z][0-9]", ENV{ID_BUS}=="usb", RUN+="/usr/bin/systemd-mount --no-block --collect -o ro /dev/%k /media/cart"
-ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z]", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat", RUN+="/usr/bin/systemd-mount --no-block --collect -o ro /dev/%k /media/cart"
-ACTION=="remove", SUBSYSTEM=="block", KERNEL=="sd[a-z]*", ENV{ID_BUS}=="usb", RUN+="/usr/bin/systemd-umount /media/cart"
+# FAT USB만 장치별 경로에 읽기전용으로 마운트한다 (파티션 없는 USB 포함).
+# --bind-device: 해당 장치가 사라지면 그 장치의 마운트만 정리한다.
+# 설치/업데이트 후 기존 팩을 분리했다 다시 연결한다.
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd*", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", ENV{ID_FS_TYPE}=="vfat", RUN+="/usr/bin/systemd-mount --no-block --collect --automount=no --bind-device --fsck=no -o ro,nosuid,nodev,noexec /dev/%k /media/iq2000/%k"

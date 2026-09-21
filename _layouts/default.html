@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f3eb">
+  {% seo %}
+  <link rel="icon" href="{{ '/assets/favicon.svg' | relative_url }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+  <script src="{{ '/assets/js/site.js' | relative_url }}" defer></script>
+</head>
+<body id="top" data-guide-url="{{ '/guide/' | relative_url }}"{% if page.home %} class="home"{% endif %}>
+  <a class="skip-link" href="#content">본문으로 건너뛰기</a>
+  <header class="site-header">
+    <a class="brand" href="{{ '/' | relative_url }}"><span class="brand-mark" aria-hidden="true">IQ</span> iq2000<span class="brand-light">-reborn</span></a>
+    <nav aria-label="주 메뉴">
+      <a href="{{ '/guide/' | relative_url }}"{% if page.url == '/guide/' %} aria-current="page"{% endif %}>설치 안내</a>
+      <a href="{{ '/docs/keyboard.html' | relative_url }}"{% if page.url contains 'keyboard' %} aria-current="page"{% endif %}>키보드</a>
+      <a href="{{ '/docs/raspberry-pi.html' | relative_url }}"{% if page.url contains 'raspberry-pi' %} aria-current="page"{% endif %}>라즈베리파이</a>
+      <a href="{{ '/docs/hardware.html' | relative_url }}"{% if page.url contains 'hardware' %} aria-current="page"{% endif %}>하드웨어</a>
+      <a href="{{ '/docs/maintenance.html' | relative_url }}"{% if page.url contains 'maintenance' %} aria-current="page"{% endif %}>진단·관리</a>
+    </nav>
+  </header>
+  {% if page.home %}
+  <main id="content" class="landing" tabindex="-1">{{ content }}</main>
+  {% else %}
+  <div class="document-layout">
+    <aside class="document-sidebar">
+      <a href="{{ '/' | relative_url }}">← 프로젝트 홈</a>
+      <nav id="page-toc" aria-label="이 문서의 목차" hidden><p class="eyebrow">이 문서에서</p></nav>
+    </aside>
+    <main id="content" class="prose" tabindex="-1">{{ content }}</main>
+  </div>
+  {% endif %}
+  <footer class="site-footer">
+    <p>iq2000-reborn <span>국산 MSX2의 기억을 이어서.</span></p>
+    <div><a href="https://github.com/progh2/iq2000-reborn">GitHub 저장소 ↗</a><a href="{{ '/LICENSE' | relative_url }}">MIT 라이선스</a><a href="#top">맨 위로 ↑</a></div>
+    <small>스크립트와 문서는 공개되어 있습니다. BIOS·한글 ROM·게임 ROM은 포함하지 않습니다.</small>
+  </footer>
+  <p id="copy-status" class="sr-only" role="status" aria-live="polite"></p>
+</body>
+</html>

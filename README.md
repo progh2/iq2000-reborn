@@ -1,4 +1,11 @@
-# iq2000-reborn
+---
+layout: default
+title: 설치와 사용 안내
+description: IQ-2000 전용기의 준비물, OS 설치, 한글 ROM 배치, USB 롬팩과 자동 실행 안내.
+permalink: /guide/
+---
+
+# IQ-2000 설치와 사용 안내
 
 **대우 IQ-2000 (CPC-300) — 국산 MSX2를 라즈베리파이로 재현한 전용기.**
 
@@ -6,7 +13,7 @@
 목표였던 **한글이 표시되는 국산 MSX2 환경의 재현** — 일본 MSX2로는 대체되지 않는 그 부분 — 이 완성됐다.
 
 > ✅ **2026-09-20 완성.** Raspberry Pi 3 B+ / 공식 7" 터치스크린 / Raspberry Pi OS(Trixie) 32-bit
-> 부팅 자동 실행 · USB 롬팩 · 한글(SCREEN 9) · 마성전설 치트까지 전부 실기동작 검증.
+> 당시 구성에서 부팅 자동 실행 · USB 롬팩 · 한글(SCREEN 9) · 마성전설 치트를 검증했습니다. 이후 코드 변경의 검증 범위는 [진단·관리](docs/maintenance.md#검증-기록)를 참고하세요.
 
 ---
 
@@ -115,14 +122,14 @@ scp "C:\경로\systemroms\*.rom" 사용자명@iq2000:.openMSX/share/systemroms/
 
 **① 먼저 `F11`로 전체화면을 켠다** (설정이 자동 저장돼 계속 유지된다). **② 그다음** 키 바인딩을 깐다 — 바인딩이 F11을 MSX `STOP`으로 덮어쓰기 때문이다.
 
+키 바인딩 설치 후 전체화면을 바꾸려면 **F10** 콘솔에서 `set fullscreen on` 또는 `set fullscreen off`를 입력한다.
+
 ### MSX 전용 키 바인딩
 
 PC 키보드에는 MSX의 `SELECT`·`STOP`·`GRAPH`·`CODE` 키가 없다. 이 키들이 실제로 필요하다:
 
 ```bash
-mkdir -p ~/.openMSX/share/scripts
-cp ~/iq2000-reborn/scripts/msx-keys.tcl ~/.openMSX/share/scripts/
-cp ~/iq2000-reborn/scripts/cheat-knightmare.tcl ~/.openMSX/share/scripts/
+./scripts/install.sh --keys   # 기존 설정 파일은 번호를 붙여 백업
 ```
 
 `~/.openMSX/share/scripts/` 의 `.tcl` 은 openMSX 시작 시 자동 실행된다. **openMSX를 재시작하면 적용:**
@@ -170,8 +177,9 @@ trainer deactivate
 ### 팩 만들기
 
 - USB를 **FAT32**로 포맷, 게임 롬(`.rom`/`.mx1`/`.mx2`) 하나를 루트에 넣는다. **압축(.zip)은 풀어서.**
-- **볼륨 라벨을 영문 게임명으로** (예: `KNIGHTMARE`) — 로그·화면 표시에 쓰인다. 한글 라벨은 깨져 보인다.
-- USB 하나에 게임 하나. 라벨 스티커를 붙이면 팩 맛이 산다.
+- **볼륨 라벨을 영문 게임명으로** (예: `KNIGHTMARE`) — 감시기 로그에 쓰인다. 한글 라벨은 깨져 보인다.
+- USB 하나에 게임 하나. **게임 팩은 한 번에 하나만 연결한다.** 여러 ROM이 발견되면 로그로 알리고 아이큐 교실로 돌아간다.
+- 기본 검색 대상은 `/media`, `/run/media`, `/mnt` 아래에 마운트된 **FAT USB의 루트**다. 하위 폴더와 다른 저장장치는 검색하지 않는다.
 
 ### Desktop에서 시험
 
@@ -185,36 +193,36 @@ cd ~/iq2000-reborn
 
 - 시작하면 아이큐 교실 → **USB 꽂으면 몇 초 안에 게임으로 재시작 → 뽑으면 아이큐 교실 복귀**
 - 실기 MSX도 팩은 전원을 끄고 갈았다. **"꽂으면 재시작"은 편법이 아니라 원래 동작의 재현이다.**
-- openMSX 창을 ✕로 닫으면 감시기가 다시 띄운다. 감시기 종료는 터미널에서 `Ctrl+C`.
+- openMSX 창을 ✕로 닫거나 프로세스가 종료되면 감지 후 기본 3초를 기다려 다시 띄운다. 감시기 종료는 터미널에서 `Ctrl+C`.
 
 ## 7. 전용기 전환 (부팅 자동 실행)
 
 Desktop 검증이 끝났으면 콘솔 전용기로 바꾼다. **각 단계를 검증하고 다음으로 넘어갈 것.**
 
-### ① USB 자동 마운트를 데스크톱 독립으로
-
-콘솔 모드에는 파일 관리자가 없으므로 udev 규칙으로 대체한다:
+### ① 서비스와 USB 자동 마운트 설치
 
 ```bash
 cd ~/iq2000-reborn
-sudo cp systemd/99-msx-cart.rules /etc/udev/rules.d/
-sudo udevadm control --reload
-# 검증: USB 뺐다 꽂고
-ls /media/cart          # 롬이 보여야 한다
+./scripts/install.sh --system
+# 검증: USB를 뺐다 꽂고
+findmnt -t vfat -o TARGET,SOURCE,OPTIONS
+./scripts/cart-find.sh
 ```
 
-`/media/cart` 에 **읽기전용**으로 붙는다 — 팩을 아무 때나 확 뽑아도 안전하다.
+현재 계정과 저장소 경로로 서비스 파일을 만들고 udev 규칙을 설치한다. **자동 실행 활성화는 ④에서 한다.** 기존 서비스와 규칙은 `.previous`로 백업된다.
 
-### ② systemd 유닛 설치
+USB는 `/media/iq2000/sda1` 같은 **장치별 경로**에 읽기전용으로 붙는다. 해당 장치를 빼면 그 장치의 마운트만 정리된다. Desktop에서 시험할 때는 파일 관리자의 자동 마운트를 꺼서 중복 마운트를 피한다.
+
+기존 `/media/cart` 규칙에서 업데이트했다면 팩을 먼저 빼고 설치한 뒤 다시 꽂는다. 자세한 업데이트 절차는 [진단·관리](docs/maintenance.md#업데이트)를 참고한다.
+
+### ② 계정·경로와 소리 확인
 
 ```bash
-sudo cp systemd/openmsx-cart.service /etc/systemd/system/
-sudo sed -i "s/User=pi/User=$USER/; s|/home/pi|$HOME|g" /etc/systemd/system/openmsx-cart.service
-sudo systemctl daemon-reload
-grep -E "User=|ExecStart=" /etc/systemd/system/openmsx-cart.service   # 본인 계정/경로인지 확인
+systemctl cat openmsx-cart
+./scripts/doctor.sh
 ```
 
-**소리를 3.5mm 잭으로 낼 거라면** 유닛의 `#Environment=AUDIODEV=...` 줄 주석을 해제한다 (→ 트러블슈팅 '소리' 항목).
+**소리를 3.5mm 잭으로 낼 거라면** `/etc/systemd/system/openmsx-cart.service`의 `#Environment=AUDIODEV=...` 주석을 해제하고 `sudo systemctl daemon-reload`를 실행한다. 재설치한 경우 기존 `.previous` 파일의 오디오 설정도 확인한다.
 
 ### ③ 콘솔 부팅 전환 + 화면 검증
 
@@ -261,6 +269,8 @@ sudo reboot
 | `SDL init failed: x11 not available` | 콘솔에서 환경변수 없이 실행했다. `SDL_VIDEODRIVER=kmsdrm 명령` 을 **한 줄로**. systemd 유닛에는 이미 들어 있다 |
 | 소리가 안 남 (콘솔 모드) | ① 기본 출력이 오디오 없는 HDMI로 간 것 — 유닛에 `Environment=AUDIODEV=sysdefault:CARD=Headphones` (3.5mm 잭. 카드명은 `aplay -l`) ② openMSX 음소거 — F10 콘솔에서 `set mute off`, `set master_volume 100` |
 | `ALSA ... error 524` | 그 출력 장치(주로 HDMI)가 오디오를 지원하지 않는다. 다른 카드로 |
+| ROM이 여러 개라는 로그 | 다른 게임 USB를 빼고 팩 루트에 ROM 하나만 남긴다 |
+| openMSX가 반복해서 재실행됨 | `./scripts/doctor.sh`와 `journalctl -u openmsx-cart -n 50`로 ROM·화면 설정을 확인한다 |
 | 아이큐 교실만 뜨고 게임이 안 뜸 | 정상일 수 있다 — **F12로 진입**하는 것이 실기 동작. 그게 아니면 `./scripts/cart-find.sh` 로 롬을 찾는지 확인 (zip 풀기, 확장자 `.rom`) |
 | 에뮬레이션이 느림 | [docs/raspberry-pi.md](docs/raspberry-pi.md)의 Pi 3 튜닝 절 (`scale_factor 1` 등). 지루한 연출은 F7 빨리감기 |
 | 터치스크린에 가상 키보드가 자꾸 뜸 (Desktop) | Raspberry Pi Configuration → Display → On-screen Keyboard → Disabled. 또는 `sudo apt purge squeekboard` |
@@ -291,27 +301,28 @@ sudo reboot
 
 | 파일 | 역할 |
 |---|---|
-| `scripts/install.sh` | openMSX 설치 + systemroms 디렉터리 생성 |
+| `scripts/install.sh` | 패키지 설치 / `--keys` 키 설정 / `--system` 서비스·USB 규칙 설치 |
+| `scripts/doctor.sh` | 환경·설정·팩 검색·서비스 상태 진단 |
 | `scripts/msx-run.sh` | openMSX 실행 (인자로 롬 경로 = 카트리지) |
 | `scripts/cart-find.sh` / `cart-label.sh` | 마운트된 USB에서 롬/라벨 찾기 |
 | `scripts/cart-watch.sh` | USB 감시 → 변화 시 openMSX 재시작 |
 | `scripts/msx-keys.tcl` | F키 바인딩 (F12=SELECT 등) |
 | `scripts/cheat-knightmare.tcl` | 마성전설 치트 (`cheat`/`lives`/`sel`) |
 | `systemd/openmsx-cart.service` | 부팅 자동 실행 유닛 |
-| `systemd/99-msx-cart.rules` | USB → `/media/cart` 읽기전용 자동 마운트 |
+| `systemd/99-msx-cart.rules` | USB → `/media/iq2000/<장치명>` 읽기전용 자동 마운트 |
 | [`docs/raspberry-pi.md`](docs/raspberry-pi.md) | OS·성능 튜닝·전용기 전환·소리 상세 |
 | [`docs/keyboard.md`](docs/keyboard.md) | 키 매트릭스·치트 원리·GPIO 버튼 |
 | [`docs/hardware.md`](docs/hardware.md) | 기종 계보·판별 근거 |
 
-환경변수: `MSX_MACHINE`(기본 `Daewoo_CPC-300`) · `MSX_POLL`(감시 주기 초, 기본 `2`)
+환경변수: `MSX_MACHINE`(기본 `Daewoo_CPC-300`) · `MSX_POLL`(감시 주기 초, 기본 `2`) · `MSX_RESTART_DELAY`(재실행 대기 초, 기본 `3`) · `MSX_CART_ROOT`(검색 디렉터리 직접 지정). 시간은 1~300의 정수. [진단·관리 및 개발 검증](docs/maintenance.md) 참고.
 
 ## 링크
 
-- openMSX — https://openmsx.org
-- IQ-2000 한글 ROM + openMSX 설정 안내 — https://sarc.io/articles/daewoo-iq2000-cpc-300-msx2-openmsx
-- MSX Resource Center — https://www.msx.org · Generation MSX — https://www.generation-msx.nl
-- JoyNets — MSX-TUTOR 아이큐 교실 — https://hwado.org/249
-- 대우전자의 MSX 컴퓨터 (나무위키) — https://namu.wiki/w/대우전자의%20MSX%20컴퓨터
+- [openMSX](https://openmsx.org)
+- [IQ-2000 한글 ROM + openMSX 설정 안내](https://sarc.io/articles/daewoo-iq2000-cpc-300-msx2-openmsx)
+- [MSX Resource Center](https://www.msx.org) · [Generation MSX](https://www.generation-msx.nl)
+- [JoyNets — MSX-TUTOR 아이큐 교실](https://hwado.org/249)
+- [대우전자의 MSX 컴퓨터 (나무위키)](https://namu.wiki/w/대우전자의%20MSX%20컴퓨터)
 - 실기 구하기 — [중고나라 IQ-2000](https://web.joongna.com/search/IQ-2000) (점검: 전원부 콘덴서·키보드 멤브레인(`SELECT` 필수!)·슬롯 접점·영상 출력)
 
 ## 라이선스

@@ -1,3 +1,8 @@
+---
+title: 키보드와 SELECT
+description: MSX 전용 키 매핑, 전체화면 복구, 마성전설 치트와 GPIO 버튼 안내.
+---
+
 # 키보드 매핑 — MSX에만 있는 키들
 
 ## 왜 매핑이 필요한가
@@ -92,6 +97,12 @@ cp scripts/msx-keys.tcl ~/.openMSX/share/scripts/
 ```
 
 `~/.openMSX/share/scripts/` 안의 `.tcl` 파일은 **openMSX 시작 시 자동 실행**된다.
+
+## 전체화면과 설정 복구
+
+F11은 STOP으로 사용하므로 전체화면 변경은 **F10** 콘솔에서 `set fullscreen on` / `set fullscreen off`를 입력한다. 기본 키로 되돌리려면 openMSX를 종료하고 `~/.openMSX/share/scripts/msx-keys.tcl`을 다른 폴더로 옮긴 후 재시작한다.
+
+키 설정 자동 설치와 백업은 `./scripts/install.sh --keys`로 실행한다. [전체 설정 백업](maintenance.md#설정-백업)도 참고한다.
 
 ## GPIO 버튼으로 SELECT 만들기 (확장)
 

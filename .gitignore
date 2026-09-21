@@ -12,3 +12,10 @@ roms/
 *.log
 .DS_Store
 __pycache__/
+
+# Jekyll 로컬 빌드
+_site/
+.sass-cache/
+.jekyll-cache/
+.bundle/
+vendor/
